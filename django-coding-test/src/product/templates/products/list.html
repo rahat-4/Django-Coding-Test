@@ -1,5 +1,5 @@
 {% extends 'backend/base.html' %}
-
+{% load humanize %}
 {% block title %} Product List {% endblock %}
 
 {% block content %}
@@ -10,18 +10,27 @@
 
 
 <div class="card">
-    <form action="" method="get" class="card-header">
+    <form action="" method="GET" class="card-header">
         <div class="form-row justify-content-between">
             <div class="col-md-2">
                 <input type="text" name="title" placeholder="Product Title" class="form-control">
             </div>
+            
             <div class="col-md-2">
                 <select name="variant" id="" class="form-control">
                     <option selected disabled>--Select A Variant--</option>
-
+                    <!-- <option value=""><input  autoComplete="on" list="variant"/></option> -->
+                    {% for variants in variant_list %}
+                    <option disabled style="color: #858796;">{{ variants.title }}</option>
+                    {% for variant in variants.pro_variant.all|dictsort:'variant_title' %}
+                    {% ifchanged %}
+                    <option value="{{ variant.variant_title }}">{{ variant.variant_title }}</option>
+                    {% endifchanged %}
+                    {% endfor %}
+                    {% endfor %}
+                    
                 </select>
             </div>
-
             <div class="col-md-3">
                 <div class="input-group">
                     <div class="input-group-prepend">
@@ -53,74 +62,79 @@
                     <th width="150px">Action</th>
                 </tr>
                 </thead>
-
+                
                 <tbody>
+                    {% for product in product_list %}
                 <tr>
-                    <td>1</td>
-                    <td>T-Shirt <br> Created at : 25-Aug-2020</td>
-                    <td>Quality product in low cost</td>
+                    <td>{{ forloop.counter }}</td>
+                     <td>{{ product.title }} <br> Created at: {{ product.created_at|naturaltime }} </td>
+                    <td>{{ product.description }}</td>
+                    
                     <td>
-                        <dl class="row mb-0" style="height: 80px; overflow: hidden" id="variant">
-                                <dt class="col-sm-3 pb-0">
-                                    XL/ Black/ Full
-                                </dt>
-                                <dd class="col-sm-9">
-                                    <dl class="row mb-0">
-                                        <dd class="col-sm-4 pb-0">Price : 200.0</dd>
-                                        <dd class="col-sm-8 pb-0">InStock : 50.</dd>
-                                    </dl>
-                                </dd>
-                                <dt class="col-sm-3 pb-0">
-                                    XL/ Black/ Half
-                                </dt>
-                                <dd class="col-sm-9">
-                                    <dl class="row mb-0">
-                                        <dd class="col-sm-4 pb-0">Price : 200.0</dd>
-                                        <dd class="col-sm-8 pb-0">InStock : 50.</dd>
-                                    </dl>
-                                </dd>
-                                <dt class="col-sm-3 pb-0">
-                                    L/ Black/ Full
-                                </dt>
-                                <dd class="col-sm-9">
-                                    <dl class="row mb-0">
-                                        <dd class="col-sm-4 pb-0">Price : 200.0</dd>
-                                        <dd class="col-sm-8 pb-0">InStock : 50.</dd>
-                                    </dl>
-                                </dd>
-                                <dt class="col-sm-3 pb-0">
-                                    L/ Black/ Half
-                                </dt>
-                                <dd class="col-sm-9">
-                                    <dl class="row mb-0">
-                                        <dd class="col-sm-4 pb-0">Price : 200.0</dd>
-                                        <dd class="col-sm-8 pb-0">InStock : 50.</dd>
-                                    </dl>
-                                </dd>
-                            </dl>
-                        <button onclick="$('#variant').toggleClass('h-auto')" class="btn btn-sm btn-link">Show more
-                        </button>
+                        <dl class="row mb-0" style="height: 80px; overflow: hidden" id="{{ product.id }}-variant">    
+                            {% for product_variant_price in product.product_variant_prices.all %}
+                            <dt class="col-sm-3 pb-0">
+                                {{ product_variant_price.product_variant_one.variant_title }}/{{ product_variant_price.product_variant_two.variant_title }}/{{ product_variant_price.product_variant_three.variant_title }}
+                            </dt>
+                            <dd class="col-sm-9">
+                                <dl class="row mb-0">
+                                    <dd class="col-sm-4 pb-0">Price: {{ product_variant_price.price }}</dd>
+                                    <dd class="col-sm-8 pb-0">InStock: {{ product_variant_price.stock }}</dd>
+                                </dl>
+                            </dd>
+                            {% endfor %}
+                        </dl>
+                        <button onclick="$('#{{ product.id }}-variant').toggleClass('h-auto')" class="btn btn-sm btn-link">Show more</button>    
                     </td>
                     <td>
                         <div class="btn-group btn-group-sm">
-                            <a href="" class="btn btn-success">Edit</a>
+                            <a href= {% url 'product:edit.product' product.id %} class="btn btn-success">Edit</a>
                         </div>
                     </td>
                 </tr>
+                {% endfor %}
                 </tbody>
-
+                
             </table>
         </div>
-
     </div>
 
     <div class="card-footer">
         <div class="row justify-content-between">
             <div class="col-md-6">
-                <p>Showing 1 to 10 out of 100</p>
+                <p>
+                    Showing {{ page_obj.number }} 
+                    {% if page_obj.number == page_obj.paginator.num_pages %} 
+                    out of {{ page_obj.paginator.num_pages }} 
+                    {% else %}
+                     to {{ page_obj.next_page_number }} out of {{ page_obj.paginator.num_pages }} 
+                    {% endif %}
+                </p>
             </div>
             <div class="col-md-2">
-
+                <ul class="pagination">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                      <a class="page-link" href="?{{ request.GET.urlencode }}&page=1" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                        <span class="sr-only">begin</span>
+                      </a>
+                    </li>
+                    <li class="page-item"><a class="page-link" href="?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}">{{ page_obj.previous_page_number }}</a></li>
+                    {% endif %}
+                      <li class="page-item active">
+                        <span class="page-link">{{ page_obj.number }}<span class="sr-only">(current)</span></span>
+                      </li> 
+                    {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}">{{ page_obj.next_page_number }}</a></li>
+                      <li class="page-item">
+                        <a class="page-link" href="?{{ request.GET.urlencode }}&page={{ page_obj.paginator.num_pages }}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                            <span class="sr-only">end</span>
+                          </a>
+                      </li>
+                      {% endif %}
+                </ul>
             </div>
         </div>
     </div>
